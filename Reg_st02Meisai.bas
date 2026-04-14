@@ -187,5 +187,24 @@ Private Function 変更チェック() As String
 
 End Function
 
-
-
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Dim 行 As Long
+    ' K列（11列目）またはL列（12列目）が変更された場合
+    If Target.Column = 11 Or Target.Column = 12 Then
+        行 = Target.Row
+        ' K列（11列目）が変更された場合
+        If Target.Column = 11 Then
+            If Cells(行, 11).Value = "〇" Then
+                Cells(行, 50).Value = 1
+            ElseIf Cells(行, 11).Value = "×" Then
+                Cells(行, 50).Value = 0
+            Else
+                Cells(行, 50).Value = ""
+            End If
+        End If
+        ' L列（12列目）が変更された場合
+        If Target.Column = 12 Then
+            Cells(行, 51).Value = Cells(行, 12).Value
+        End If
+    End If
+End Sub

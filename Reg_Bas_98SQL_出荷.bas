@@ -30,6 +30,9 @@ Public Function InsertSQL(ByRef 出荷Rec As 出荷Record) As String
     strSQL = strSQL & ",ZSHC4"
     strSQL = strSQL & ",ZSKSU"
     strSQL = strSQL & ",ZSLOT"
+    strSQL = strSQL & ",ZSLOT"
+    strSQL = strSQL & ",ZSSSTF"   '車両積荷前衛生点検（追加）
+    strSQL = strSQL & ",ZSIDJK"   '逸脱事項（追加）
     strSQL = strSQL & ") VALUES ("
     strSQL = strSQL & " ''"                                             '削除フラグ
     strSQL = strSQL & ",TO_CHAR(current timestamp, 'YYYYMMDD')"         '作成日時
@@ -54,6 +57,8 @@ Public Function InsertSQL(ByRef 出荷Rec As 出荷Record) As String
         strSQL = strSQL & ",'" & .汎用CD4 & "'"                         '汎用CD4            '2016/11/30 Add
         strSQL = strSQL & ", " & Val(.注文数量)                         '注文数             '2016/11/30 Add
         strSQL = strSQL & ",'" & .ロットNO & "'"                        'ロット
+        strSQL = strSQL & "," & .車両積荷前衛生点検 = Cells(行, 50).Value   '1/0（K列の値）
+        strSQL = strSQL & ",'" & .逸脱事項 = Cells(行, 51).Value & "'"                        'L列のテキスト
     End With
     strSQL = strSQL & ")"
     Debug.Print strSQL
@@ -65,7 +70,6 @@ End Function
 'SQL文生成(更新)
 Public Function UpdateSQL(ByRef 出荷Rec As 出荷Record) As String
     Dim strSQL      As String
-    
     With 出荷Rec
         strSQL = ""
         strSQL = strSQL & "UPDATE " & P_LIB & ".SZSP01 "
@@ -75,6 +79,8 @@ Public Function UpdateSQL(ByRef 出荷Rec As 出荷Record) As String
         strSQL = strSQL & " ,ZSUUSR ='" & P_USER & "'"
         strSQL = strSQL & " ,ZSUPGM ='" & P_PGM & "'"
         strSQL = strSQL & " ,ZSYUCA ='" & .運送会社CD2 & "'"
+        strSQL = strSQL & " ,ZSSSTF = " & .車両積荷前衛生点検
+        strSQL = strSQL & " ,ZSIDJK = '" & .逸脱事項 & "'"
         strSQL = strSQL & " WHERE ZSDLT='' "
         strSQL = strSQL & "   AND ZSSNO='" & .伝票NO & "'"
     End With

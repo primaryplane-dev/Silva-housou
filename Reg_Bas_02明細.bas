@@ -91,6 +91,8 @@ Public Sub 明細表示()
     strSQL = strSQL & "  ,TEME1 "
     strSQL = strSQL & "  ,TEME2 "
     strSQL = strSQL & "  ,YUCA "
+    strSQL = strSQL & "  ,ZSSSTF "   '車両積荷前衛生点検（追加カラム）
+    strSQL = strSQL & "  ,ZSIDJK "   '逸脱事項（追加カラム）
     strSQL = strSQL & " FROM "
     strSQL = strSQL & "  ( SELECT * "
     strSQL = strSQL & "    FROM  LIBWMF17.WNPP21B3 "
@@ -101,8 +103,8 @@ Public Sub 明細表示()
     strSQL = strSQL & " LEFT JOIN LIBBMF.BAEP01    ON AEANO=CONCAT(SUBSTR(JPETC,1,2), '000') "
     strSQL = strSQL & " LEFT JOIN LIBWMF17.WTMP01  ON TMTNO=JPTNO "
     strSQL = strSQL & " LEFT JOIN LIBWMF17.WTEP01  ON TETNO=JPTNO AND TEENO=JPSWK AND TECD1=JPHC4 "
-    strSQL = strSQL & " LEFT JOIN "                                                                     '2016/11/30 Add
-    strSQL = strSQL & "  ( SELECT ZSSNO,MAX(ZSYUCA) AS YUCA "                                           '全行同じ前提
+    strSQL = strSQL & " LEFT JOIN "
+    strSQL = strSQL & "  ( SELECT ZSSNO, MAX(ZSYUCA) AS YUCA, MAX(ZSSSTF) AS ZSSSTF, MAX(ZSIDJK) AS ZSIDJK "
     strSQL = strSQL & "      FROM " & P_LIB & ".SZSP01 "
     strSQL = strSQL & "     WHERE ZSDLT='' "
     strSQL = strSQL & "       AND ZSSNO='" & P_専用伝票NO & "' "
@@ -161,9 +163,19 @@ Public Sub 明細表示()
                     Cells(行, 10) = "確定"
                 End If
             End If
+            '--- 欄外コメントは13列目（M列）に出力 ---
             If WK期限切れ = "あり" Then
-                Cells(行, 11) = "期限ぎれ在庫あり"              '欄外コメント
+                Cells(行, 13) = "期限ぎれ在庫あり"              '欄外コメント
             End If
+            '--- 車両積荷前衛生点検・逸脱事項の転記 ---
+            If Cells(行, 11).Value = "〇" Then
+                Cells(行, 50).Value = 1
+            ElseIf Cells(行, 11).Value = "×" Then
+                Cells(行, 50).Value = 0
+            Else
+                Cells(行, 50).Value = ""
+            End If
+            Cells(行, 51).Value = Cells(行, 12).Value
             '変数クリア
             WKメモ = "":        WK割当数計 = 0
             WK期限切れ = "":    WK今回引当 = ""
@@ -174,13 +186,6 @@ Public Sub 明細表示()
         If Val(st02Hikiate.Cells(data行, 14)) <> 0 Then
             WK割当数計 = WK割当数計 + st02Hikiate.Cells(data行, 14)
             If WKメモ <> "" Then WKメモ = WKメモ & vbCrLf
-                                                                            '2017/05/08 Upd No.62 バッチNoを削除
-           'WKメモ = WKメモ & Right(String(6, " ") & st02Hikiate.Cells(data行, 14), 6) _
-           '                & " (" _
-           '                & Format(Get賞味期限fromロット(st02Hikiate.Cells(data行, 16)), "yyyy/mm/dd") _
-           '                & "-" & Getバッチ数fromロット(st02Hikiate.Cells(data行, 16)) _
-           '                & ") " _
-           '                & st02Hikiate.Cells(data行, 15)
             WKメモ = WKメモ & Right(String(6, " ") & st02Hikiate.Cells(data行, 14), 6) _
                             & " (" _
                             & Format(Get賞味期限fromロット(st02Hikiate.Cells(data行, 16)), "yyyy/mm/dd") _
@@ -192,6 +197,19 @@ Public Sub 明細表示()
     Next
     明細_最終行 = 行
 
+    For 行 = 明細_行頭 To 明細_最終行
+        ' K列→50列目
+        If Cells(行, 11).Value = "〇" Then
+            Cells(行, 50).Value = 1
+        ElseIf Cells(行, 11).Value = "×" Then
+            Cells(行, 50).Value = 0
+        Else
+            Cells(行, 50).Value = ""
+        End If
+        ' L列→51列目
+        Cells(行, 51).Value = Cells(行, 12).Value
+    Next
+
     '見ためを整える
     Range(Cells(明細_行頭, 2), Cells(明細_最終行, 12)).Rows.AutoFit
     Range(Cells(明細_行頭, 2), Cells(明細_最終行, 12)).Borders.LineStyle = xlContinuous
@@ -200,6 +218,3 @@ Public Sub 明細表示()
     Application.StatusBar = False
 
 End Sub
-
-
-

@@ -3,7 +3,7 @@ Public Const PB_SERVER = "M:\【包装出荷実績】\"
 
 '接続文字列
 Public Const P_接続文字列 = "DSN=ISA011;UID=SYSTEM;PWD=FJPN2480;"   'HONSHA
-Public Const P_LIB = "LIBSMF17"
+Public Const P_LIB = "LIBSMF17T"
 
 'User.iniから
 Public P_USER           As String
@@ -54,6 +54,9 @@ Public Type 出荷Record
     注文数量    As String
     運送会社CD2 As String
     ロットNO    As String
+    車両積荷前衛生点検 As Integer   'ZSSSTF 追加
+    逸脱事項    As String           'ZSIDJK 追加
+
 End Type
 
 '変数を保存する
