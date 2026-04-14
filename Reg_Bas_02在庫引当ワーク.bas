@@ -60,6 +60,8 @@ Public Sub 在庫引当クリア()
     Cells(3, 15) = "仮"
     Cells(3, 16) = "ロットNo."      '賞味期限＋バッチNo.
     Cells(3, 17) = "出庫期限"
+    Cells(3, 18) = "車両積荷前衛生点検(1:〇, 0:×)" ' 18列目: 1/0で直接保持
+    Cells(3, 19) = "逸脱事項(フリー入力)"           ' 19列目: フリー入力
     Range(Cells(2, 2), Cells(3, 10)).Interior.Color = RGB(255, 255, 153)     '黄
     Range(Cells(2, 11), Cells(3, 17)).Interior.Color = RGB(255, 153, 204)    '桃
     Range(Cells(2, 2), Cells(3, 17)).Borders.LineStyle = xlContinuous
@@ -102,6 +104,9 @@ Public Sub Create在庫引当ワーク()
             Cells(行, 15) = .区分
             Cells(行, 16) = .ロット
             If .出庫期限 > 0 Then Cells(行, 17) = .出庫期限
+            ' 18列目: 車両積荷前衛生点検（1/0）
+            ' 19列目: 逸脱事項（フリー入力）
+            ' ※値のセットは呼び出し元で行う想定。ここではヘッダーのみ明確化。
         End With
     Next
     引当_最終行 = 行

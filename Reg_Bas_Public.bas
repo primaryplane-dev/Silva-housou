@@ -54,8 +54,8 @@ Public Type 出荷Record
     注文数量    As String
     運送会社CD2 As String
     ロットNO    As String
-    車両積荷前衛生点検 As Integer   'ZSSSTF 追加
-    逸脱事項    As String           'ZSIDJK 追加
+    車両積荷前衛生点検 As Integer   '11列目: 1/0で直接保持・AS連携
+    逸脱事項    As String           '12列目: フリー入力・AS連携
 
 End Type
 

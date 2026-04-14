@@ -12,6 +12,7 @@ Public Function DB更新(ByRef 出荷Rec As 出荷Record, ByRef CN As Object) As
     On Error Resume Next
 
     '■変更箇所をデータベースに反映する
+    ' 11列目（車両積荷前衛生点検:1/0）、12列目（逸脱事項:フリー入力）はAS連携で直接InsertSQL/UpdateSQLに渡す
 
     'LIBSMF17.SZSP01:出荷データ
     strSQL = InsertSQL(出荷Rec)

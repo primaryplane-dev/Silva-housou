@@ -34,6 +34,15 @@ Private Sub Worksheet_SelectionChange(ByVal Target As Range)
             Cells(行, 10).Value = "引当する"
             Cells(行, 列_チェック).Interior.Color = RGB(255, 153, 204)  '桃色
             Rows(行).AutoFit
+            ' 11列目: 車両積荷前衛生点検（〇→1、×→0）
+            Dim tmpVal As String
+            tmpVal = Trim(Cells(行, 11).Value)
+            If tmpVal = "〇" Then
+                Cells(行, 11).Value = 1
+            ElseIf tmpVal = "×" Then
+                Cells(行, 11).Value = 0
+            End If
+            ' 12列目: 逸脱事項（フリー入力）はそのまま
             Call Set共通変数
         End If
     
@@ -126,6 +135,10 @@ Private Sub cmd確定する_Click()
                             .ロットNO = st02Hikiate.Cells(data行, 16).Value
                             .賞味期限 = Get賞味期限fromロット(.ロットNO)
                             .生産品番 = st02Hikiate.Cells(data行, 12).Value
+                            ' 11列目: 車両積荷前衛生点検（1/0）を直接セット
+                            .車両積荷前衛生点検 = st02Hikiate.Cells(data行, 18).Value
+                            ' 12列目: 逸脱事項（フリー入力）を直接セット
+                            .逸脱事項 = st02Hikiate.Cells(data行, 19).Value
                             If DB更新(出荷Rec, CN) = True Then
                                 更新FLG = True
                             Else
@@ -186,25 +199,3 @@ Private Function 変更チェック() As String
     Next
 
 End Function
-
-Private Sub Worksheet_Change(ByVal Target As Range)
-    Dim 行 As Long
-    ' K列（11列目）またはL列（12列目）が変更された場合
-    If Target.Column = 11 Or Target.Column = 12 Then
-        行 = Target.Row
-        ' K列（11列目）が変更された場合
-        If Target.Column = 11 Then
-            If Cells(行, 11).Value = "〇" Then
-                Cells(行, 50).Value = 1
-            ElseIf Cells(行, 11).Value = "×" Then
-                Cells(行, 50).Value = 0
-            Else
-                Cells(行, 50).Value = ""
-            End If
-        End If
-        ' L列（12列目）が変更された場合
-        If Target.Column = 12 Then
-            Cells(行, 51).Value = Cells(行, 12).Value
-        End If
-    End If
-End Sub
