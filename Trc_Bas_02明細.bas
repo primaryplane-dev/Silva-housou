@@ -23,6 +23,10 @@ Private Sub 明細クリア()
     Cells(4, 8) = "在庫調整日":  Cells(7, 8) = "納品日" '2017/05/01 Update
     Cells(4, 9) = "生産日":      Cells(7, 9) = "出荷日" '2017/05/01 Update
     Cells(4, 10) = "在庫数":     Cells(7, 10) = "出荷数" '2017/05/01 Update
+    '--- 2026/04/15 新仕様対応: 11・12列目見出し追加（出荷部） ---
+    Cells(7, 11) = "車両積荷前衛生点検(ZSSSTF)" '1:実施 0:未実施
+    Cells(7, 12) = "逸脱事項(ZSIDJK)"           'フリー入力
+    '---
     Range(Cells(明細在庫_行頭 - 1, 2), Cells(明細在庫_行頭 - 1, 10)).Interior.Color = RGB(255, 255, 204)
     Range(Cells(明細出荷_行頭 - 1, 2), Cells(明細出荷_行頭 - 1, 10)).Interior.Color = RGB(255, 255, 204)
     Range(Cells(明細在庫_行頭 - 1, 2), Cells(明細在庫_行頭 - 1, 10)).Borders.LineStyle = xlContinuous
@@ -142,10 +146,19 @@ Public Sub 明細表示()
         Cells(行, 8).Value = 日付変換(RS("NDT"))            '納品日
         Cells(行, 9).Value = 日付変換(RS("SDT"))            '出荷日
         Cells(行, 10).Value = RS("SRY")                     '出荷数
+        '--- 2026/04/15 新仕様対応: 11・12列目（ZSSSTF, ZSIDJK）を転記 ---
+        On Error Resume Next
+        Cells(行, 11).Value = RS("ZSSSTF") '車両積荷前衛生点検（1:実施 0:未実施）
+        Cells(行, 12).Value = RS("ZSIDJK") '逸脱事項（フリー入力）
+        On Error GoTo 0
+        '---
         RS.MoveNext
     Loop
     
     Range(Cells(明細出荷_行頭, 2), Cells(行, 10)).Borders.LineStyle = xlContinuous ' 2017/05/01 Add
+    '--- 2026/04/15 新仕様対応: 11・12列目にも罫線を引く ---
+    Range(Cells(明細出荷_行頭, 11), Cells(行, 12)).Borders.LineStyle = xlContinuous
+    '---
     
     'ＲＳクローズ、ＤＢ切断
     RS.Close:    Set RS = Nothing
