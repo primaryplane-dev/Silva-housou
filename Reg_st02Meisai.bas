@@ -37,12 +37,20 @@ Private Sub Worksheet_SelectionChange(ByVal Target As Range)
             ' 11列目: 車両積荷前衛生点検（〇→1、×→0）
             Dim tmpVal As String
             tmpVal = Trim(Cells(行, 11).Value)
+            Dim tmpHikiate As Variant
             If tmpVal = "〇" Then
                 Cells(行, 11).Value = 1
+                tmpHikiate = 1
             ElseIf tmpVal = "×" Then
                 Cells(行, 11).Value = 0
+                tmpHikiate = 0
+            Else
+                tmpHikiate = ""
             End If
-            ' 12列目: 逸脱事項（フリー入力）はそのまま
+            ' 18列目: 車両積荷前衛生点検（1/0）をst02Hikiateへ転記
+            st02Hikiate.Cells(行, 18).Value = tmpHikiate
+            ' 19列目: 逸脱事項（AS項目:ZSIDJK／st02Hikiateへそのまま転記）
+            st02Hikiate.Cells(行, 19).Value = Cells(行, 12).Value
             Call Set共通変数
         End If
     

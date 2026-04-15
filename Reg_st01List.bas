@@ -148,3 +148,17 @@ Private Sub Set車両積荷前衛生点検リスト()
     End With
 End Sub
 
+' 12列目（逸脱事項）のロック制御（シート保護が必要。ユーザー確認後に実装）
+'Private Sub Set逸脱事項ロック()
+'    Dim 行 As Long
+'    With st02Meisai
+'        For 行 = 明細_行頭 To 明細_最終行
+'            If .Cells(行, 11).Value = "×" Then
+'                .Cells(行, 12).Locked = False
+'            Else
+'                .Cells(行, 12).Locked = True
+'                .Cells(行, 12).Value = "" ' 〇の場合はクリア
+'            End If
+'        Next
+'    End With
+'End Sub

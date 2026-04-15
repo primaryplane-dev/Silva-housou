@@ -91,6 +91,8 @@ Public Sub 明細表示()
     strSQL = strSQL & "  ,TEME1 "
     strSQL = strSQL & "  ,TEME2 "
     strSQL = strSQL & "  ,YUCA "
+    strSQL = strSQL & "  ,SZ.ZSSSTF "
+    strSQL = strSQL & "  ,SZ.ZSIDJK "
     strSQL = strSQL & " FROM "
     strSQL = strSQL & "  ( SELECT * "
     strSQL = strSQL & "    FROM  LIBWMF17.WNPP21B3 "
@@ -108,6 +110,8 @@ Public Sub 明細表示()
     strSQL = strSQL & "       AND ZSSNO='" & P_専用伝票NO & "' "
     strSQL = strSQL & "     GROUP BY ZSSNO "
     strSQL = strSQL & "  ) AS ZS ON ZS.ZSSNO = JPSNO "
+    ' ▼ZSSSTF（車両積荷前衛生点検）・ZSIDJK（逸脱事項）を取得するためのJOINを追加
+    strSQL = strSQL & " LEFT JOIN LIBSMF17.SZSP01 SZ ON SZ.ZSSNO=JP.JPSNO AND SZ.ZSGYO=JP.JPSGY "
     strSQL = strSQL & " ORDER BY JPSNO,JPSGY "
     Debug.Print strSQL
     RS.Open strSQL, CN, adOpenStatic, adLockReadOnly
@@ -161,18 +165,10 @@ Public Sub 明細表示()
                     Cells(行, 10) = "確定"
                 End If
             End If
-            ' 11列目: 車両積荷前衛生点検（〇→1、×→0）
-            Dim tmpVal As String
-            tmpVal = Trim(st02Hikiate.Cells(data行 - 1, 11))
-            If tmpVal = "〇" Then
-                Cells(行, 11) = 1
-            ElseIf tmpVal = "×" Then
-                Cells(行, 11) = 0
-            Else
-                Cells(行, 11) = ""
-            End If
-            ' 12列目: 逸脱事項（フリー入力）
-            Cells(行, 12) = st02Hikiate.Cells(data行 - 1, 12)
+            ' 11列目: 車両積荷前衛生点検（AS項目:ZSSSTF 1/0をそのままセット）
+            Cells(行, 11) = st02Hikiate.Cells(data行 - 1, 18)
+            ' 12列目: 逸脱事項（AS項目:ZSIDJK フリー入力をそのままセット）
+            Cells(行, 12) = st02Hikiate.Cells(data行 - 1, 19)
             ' 期限切れコメント（13列目）
             If WK期限切れ = "あり" Then
                 Cells(行, 13) = "期限ぎれ在庫あり"              '欄外コメント
