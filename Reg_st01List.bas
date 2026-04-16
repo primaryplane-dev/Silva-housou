@@ -70,14 +70,21 @@ Private Sub cmd出荷入力_Click()
     If P_運送会社CD = "" Then Exit Sub
 
     '選択中の行を探す
+    選択行 = 0
     For 行 = 出荷先_行頭 To 出荷先_最終行
         If Cells(行, 1).Value = レ点 Then
             選択行 = 行
             Exit For
         End If
     Next
-    If 選択行 = 0 Then Exit Sub
-    If Val(Cells(選択行, 2).Value) = 0 Then Exit Sub
+    If 選択行 = 0 Then
+        MsgBox "出荷先リストから行を選択してください"
+        Exit Sub
+    End If
+    If Val(Cells(選択行, 2).Value) = 0 Then
+        MsgBox "選択行にデータがありません"
+        Exit Sub
+    End If
     
     '条件を保存する
     P_専用伝票NO = Cells(選択行, 4).Value
@@ -127,38 +134,4 @@ Private Sub cmd終了_Click()
     ActiveWorkbook.Close False
 End Sub
 
-' ★1_明細シート11列目（車両積荷前衛生点検）に〇×リストを設定する
-' st02Meisaiに記述するとエラーになるため、ここで実行する
-Private Sub Set車両積荷前衛生点検リスト()
-    Dim 行 As Long
-    With st02Meisai
-        For 行 = 明細_行頭 To 明細_最終行
-            .Cells(行, 11).Validation.Delete
-            .Cells(行, 11).Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
-                Operator:=xlBetween, Formula1:="〇,×"
-            ' 入力値を1/0に変換して直接セット
-            Dim tmpVal As String
-            tmpVal = Trim(.Cells(行, 11).Value)
-            If tmpVal = "〇" Then
-                .Cells(行, 11).Value = 1
-            ElseIf tmpVal = "×" Then
-                .Cells(行, 11).Value = 0
-            End If
-        Next
-    End With
-End Sub
 
-' 12列目（逸脱事項）のロック制御（シート保護が必要。ユーザー確認後に実装）
-'Private Sub Set逸脱事項ロック()
-'    Dim 行 As Long
-'    With st02Meisai
-'        For 行 = 明細_行頭 To 明細_最終行
-'            If .Cells(行, 11).Value = "×" Then
-'                .Cells(行, 12).Locked = False
-'            Else
-'                .Cells(行, 12).Locked = True
-'                .Cells(行, 12).Value = "" ' 〇の場合はクリア
-'            End If
-'        Next
-'    End With
-'End Sub

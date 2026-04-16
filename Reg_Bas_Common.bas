@@ -89,3 +89,18 @@ ErrHandler:
         MsgBox strFileName & vbCrLf & "は起動できませんでした" & vbCrLf & " (" & Err.Number & " )", vbExclamation
     End If
 End Sub
+
+
+Public Sub Set車両積荷前衛生点検リスト()
+    Dim 行 As Long
+    If 明細_最終行 < 明細_行頭 Then Exit Sub
+    st02Meisai.Activate
+    DoEvents
+    With st02Meisai
+        For 行 = 明細_行頭 To 明細_最終行
+            .Cells(行, 11).Validation.Delete
+            .Cells(行, 11).Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
+                Operator:=xlBetween, Formula1:="〇,×"
+        Next
+    End With
+End Sub

@@ -88,3 +88,19 @@ Public Function UpdateSQL(ByRef 出荷Rec As 出荷Record) As String
 
 End Function
 
+' 車両積荷前衛生点検・逸脱事項のみ更新
+Public Function UpdateHygieneSQL(ByRef 出荷Rec As 出荷Record) As String
+    Dim strSQL As String
+    With 出荷Rec
+        strSQL = ""
+        strSQL = strSQL & "UPDATE " & P_LIB & ".SZSP01 "
+        strSQL = strSQL & " SET "
+        strSQL = strSQL & "  ZSSSTF = " & .車両積荷前衛生点検
+        strSQL = strSQL & " ,ZSIDJK = '" & .逸脱事項 & "'"
+        strSQL = strSQL & " WHERE ZSDLT='' "
+        strSQL = strSQL & "   AND ZSSNO='" & .伝票NO & "'"
+        strSQL = strSQL & "   AND ZSSGY=" & Val(.行NO)
+    End With
+    Debug.Print strSQL
+    UpdateHygieneSQL = strSQL
+End Function

@@ -124,43 +124,73 @@ Private Sub cmd確定する_Click()
     End With
 
     '「引当する」を指定した行を更新対象にする
-    ErrFLG = False
-    更新FLG = False
-    For 行 = 明細_行頭 To 明細_最終行
-        If Cells(行, 列_チェック).Value = "引当する" Then
-            With 出荷Rec
-                .行NO = Cells(行, 2).Value
-                .伝票区分 = Cells(行, 3).Value
-                .販売品番 = Cells(行, 4).Value
-                '商品ひとつにつき、複数の在庫を引当てる(ロットが異なる)
-                For data行 = 引当_行頭 To 引当_最終行
-                    If .行NO = st02Hikiate.Cells(data行, 3).Value Then
-                        Select Case st02Hikiate.Cells(data行, 15).Value
-                        Case "*", "**", "切*"
-                            .単位 = st02Hikiate.Cells(data行, 8).Value
-                            .注文数量 = st02Hikiate.Cells(data行, 10).Value     '2016/11/30 Add
-                            .出荷数量 = st02Hikiate.Cells(data行, 14).Value
-                            .ロットNO = st02Hikiate.Cells(data行, 16).Value
-                            .賞味期限 = Get賞味期限fromロット(.ロットNO)
-                            .生産品番 = st02Hikiate.Cells(data行, 12).Value
-                            ' 11列目: 車両積荷前衛生点検（1/0）を直接セット
-                            .車両積荷前衛生点検 = st02Hikiate.Cells(data行, 18).Value
-                            ' 12列目: 逸脱事項（フリー入力）を直接セット
-                            .逸脱事項 = st02Hikiate.Cells(data行, 19).Value
-                            If DB更新(出荷Rec, CN) = True Then
-                                更新FLG = True
-                            Else
-                                ErrFLG = True
-                                Exit For
-                            End If
-                        End Select
-                    End If
-                Next
-                If ErrFLG = True Then Exit For
-            End With
-        End If
-    Next
-    
+ErrFLG = False
+更新FLG = False
+For 行 = 明細_行頭 To 明細_最終行
+    ' --- 全行のK列・L列（車両積荷前衛生点検・逸脱事項）をDB即時反映 ---
+    出荷Rec.行NO = Cells(行, 2).Value
+    出荷Rec.伝票NO = Cells(4, 8).Value
+
+    ' 型変換・エラーチェック
+    Dim tmpHygiene As Variant
+    tmpHygiene = Cells(行, 11).Value
+    If IsNumeric(tmpHygiene) Then
+        出荷Rec.車両積荷前衛生点検 = CInt(tmpHygiene)
+    Else
+        出荷Rec.車両積荷前衛生点検 = 0
+    End If
+
+    Dim tmpDeviation As Variant
+    tmpDeviation = Cells(行, 12).Value
+    If IsError(tmpDeviation) Or IsNull(tmpDeviation) Then
+        出荷Rec.逸脱事項 = ""
+    Else
+        出荷Rec.逸脱事項 = CStr(tmpDeviation)
+    End If
+
+    Dim hygieneSQL As String
+    Dim 処理件数 As Long
+    hygieneSQL = ModSQL_Ship.UpdateHygieneSQL(出荷Rec)
+    If hygieneSQL <> "" Then
+        CN.Execute hygieneSQL, 処理件数, &H80
+    End If
+    ' --- ここまで追加 ---
+
+    ' 以下は「引当する」行のみ従来通り在庫引当処理
+    If Cells(行, 列_チェック).Value = "引当する" Then
+        With 出荷Rec
+            .伝票区分 = Cells(行, 3).Value
+            .販売品番 = Cells(行, 4).Value
+            '商品ひとつにつき、複数の在庫を引当てる(ロットが異なる)
+            For data行 = 引当_行頭 To 引当_最終行
+                If .行NO = st02Hikiate.Cells(data行, 3).Value Then
+                    Select Case st02Hikiate.Cells(data行, 15).Value
+                    Case "*", "**", "切*"
+                        .単位 = st02Hikiate.Cells(data行, 8).Value
+                        .注文数量 = st02Hikiate.Cells(data行, 10).Value     '2016/11/30 Add
+                        .出荷数量 = st02Hikiate.Cells(data行, 14).Value
+                        .ロットNO = st02Hikiate.Cells(data行, 16).Value
+                        .賞味期限 = Get賞味期限fromロット(.ロットNO)
+                        .生産品番 = st02Hikiate.Cells(data行, 12).Value
+                        ' 11列目: 車両積荷前衛生点検（1/0）を直接セット
+                        .車両積荷前衛生点検 = st02Hikiate.Cells(data行, 18).Value
+                        ' 12列目: 逸脱事項（フリー入力）を直接セット
+                        .逸脱事項 = st02Hikiate.Cells(data行, 19).Value
+                        If DB更新(出荷Rec, CN) = True Then
+                            更新FLG = True
+                        Else
+                            ErrFLG = True
+                            Exit For ' ←このExit Forは「For data行 = ...」に対応
+                        End If
+                    End Select
+                End If
+            Next ' ←「For data行 = ...」のNext
+            If ErrFLG = True Then Exit For ' ←このExit Forは「For 行 = ...」に対応
+        End With
+    End If
+Next ' ←「For 行 = ...」のNext
+
+
     If st02Meisai.cbo運送会社変更後.Text <> "" Then         '2016/11/30 Add 全行同じなので最終行の値を使う
         If DB更新_運送会社(出荷Rec, CN) = True Then
             更新FLG = True
@@ -183,6 +213,7 @@ Private Sub cmd確定する_Click()
     st01List.Select
     Call st01List.カレント行移動
     Call Create在庫引当ワーク
+    Call 明細ToHikiate転記
     Call 明細表示
     Call Set共通変数
     st02Meisai.Select
@@ -207,3 +238,26 @@ Private Function 変更チェック() As String
     Next
 
 End Function
+
+' Worksheet_Changeイベント追加：K列・L列変更時にst02Hikiateへ即時転記
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Dim 行 As Long
+    If Target.Count > 1 Then Exit Sub
+    行 = Target.Row
+    ' K列（11列目）変更時
+    If Target.Column = 11 And 行 >= 明細_行頭 And 行 <= 明細_最終行 Then
+        Dim tmpVal As String
+        tmpVal = Trim(Cells(行, 11).Value)
+        If tmpVal = "〇" Then
+            st02Hikiate.Cells(行, 18).Value = 1
+        ElseIf tmpVal = "×" Then
+            st02Hikiate.Cells(行, 18).Value = 0
+        Else
+            st02Hikiate.Cells(行, 18).Value = ""
+        End If
+    End If
+    ' L列（12列目）変更時
+    If Target.Column = 12 And 行 >= 明細_行頭 And 行 <= 明細_最終行 Then
+        st02Hikiate.Cells(行, 19).Value = Cells(行, 12).Value
+    End If
+End Sub

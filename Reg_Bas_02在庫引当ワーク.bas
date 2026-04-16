@@ -27,11 +27,14 @@ Public Type 引当Record
     賞味期限    As Date
     バッチNO    As String
     出庫期限    As Date
+    車両積荷前衛生点検 As Variant ' 追加
+    逸脱事項 As String            ' 追加
 End Type
 
 Public Sub 在庫引当クリア()
 
     st02Hikiate.Activate
+    DoEvents   ' ← これでなおる？
 
     'クリア
     st02Hikiate.Cells.Select
@@ -104,7 +107,8 @@ Public Sub Create在庫引当ワーク()
             Cells(行, 15) = .区分
             Cells(行, 16) = .ロット
             If .出庫期限 > 0 Then Cells(行, 17) = .出庫期限
-            ' 18列目: 車両積荷前衛生点検（1/0）
+            Cells(行, 18) = .車両積荷前衛生点検
+            Cells(行, 19) = .逸脱事項            ' 18列目: 車両積荷前衛生点検（1/0）
             ' 19列目: 逸脱事項（フリー入力）
             ' ※値のセットは呼び出し元で行う想定。ここではヘッダーのみ明確化。
         End With
@@ -157,19 +161,18 @@ Public Sub データ抽出_出荷在庫(ByRef 引当Rec() As 引当Record, ByVal
     strSQL = strSQL & "   ,JPTNI   AS TNI  "    '7
     strSQL = strSQL & "   ,JPTNN   AS TNN  "    '8
     strSQL = strSQL & "   ,JPKSU   AS KSU  "    '9
-    strSQL = strSQL & "   ,JPNNS || JPNNE || right ('00' || JPNTU, 2) || right ('00' || JPNHI, 2) AS NHI "
+    strSQL = strSQL & "   ,JPNNS || JPNNE || right ('00' || JPNTU, 2) || right ('00' || JPNHI, 2) AS NHI " '10
     strSQL = strSQL & "   ,ZSHNO   AS HNO2 "    '11
-    strSQL = strSQL & "   ,ZSHNO   AS SNO  "    '12     '※原則 生産品番＝販売品番
+    strSQL = strSQL & "   ,ZSHNO   AS SNO  "    '12
     strSQL = strSQL & "   ,ZSSRY   AS SRY  "    '13
     strSQL = strSQL & "   ,ZSLOT   AS LOT  "    '14
-    strSQL = strSQL & "   ,'出荷'  AS KBN  "    '15
-    strSQL = strSQL & "   ,'1'     AS KBN2 "    '16 KBNのSORT用
-    strSQL = strSQL & "   ,0       AS SLD  "    '17
-    strSQL = strSQL & "   ,0       AS SLD2  "   '18
-    ' 2018/05/16  伝票番号+行番号で受注データが２件以上あるケース。条件に日付も入れておく
-    'strSQL = strSQL & " FROM      LIBWMF17.WNPP21B3 "
+    strSQL = strSQL & "   ,ZSSSTF AS ZSSSTF "   '15 車両積荷前衛生点検
+    strSQL = strSQL & "   ,ZSIDJK AS ZSIDJK "   '16 逸脱事項
+    strSQL = strSQL & "   ,'出荷'  AS KBN  "       '17
+    strSQL = strSQL & "   ,'1'     AS KBN2 "       '18 KBNのSORT用
+    strSQL = strSQL & "   ,0       AS SLD  "       '19
+    strSQL = strSQL & "   ,0       AS SLD2  "      '20
     strSQL = strSQL & " FROM "
-    ' 2021/10/15  日付+伝票番号+行番号で受注データが２件以上あるケース。条件に品番を入れゼロは省く（打消しの伝票）
     strSQL = strSQL & "    (SELECT"
     strSQL = strSQL & "             *"
     strSQL = strSQL & "     From"
@@ -191,7 +194,6 @@ Public Sub データ抽出_出荷在庫(ByRef 引当Rec() As 引当Record, ByVal
     strSQL = strSQL & "             LIBWMF17.WNPP21B3"
     strSQL = strSQL & "         WHERE"
     strSQL = strSQL & "             JPSNO='" & P_専用伝票NO & "' "
-    'strSQL = strSQL & "         GROUP BY JPNNS,JPNNE,JPNTU,JPNHI,JPSNO,JPSGY"
     strSQL = strSQL & "         GROUP BY JPNNS,JPNNE,JPNTU,JPNHI,JPSNO,JPSGY,JPHNO"
     strSQL = strSQL & "      ) AS JP2"
     strSQL = strSQL & "     WHERE JPKSU > 0"
@@ -205,7 +207,8 @@ Public Sub データ抽出_出荷在庫(ByRef 引当Rec() As 引当Record, ByVal
     strSQL = strSQL & "  ) AS ZS ON ZS.ZSSNO = JP.JPSNO AND ZS.ZSSGY = JP.JPSGY "
     strSQL = strSQL & " WHERE JPSNO='" & P_専用伝票NO & "' "
     If Val(i_行NO) > 0 Then strSQL = strSQL & " AND JPSGY=" & i_行NO
-    '在庫
+
+    '--- UNION ALL 在庫側 ---
     strSQL = strSQL & " UNION ALL "
     strSQL = strSQL & "SELECT"
     strSQL = strSQL & "    JPSNO   AS DPNO "
@@ -222,14 +225,13 @@ Public Sub データ抽出_出荷在庫(ByRef 引当Rec() As 引当Record, ByVal
     strSQL = strSQL & "   ,SZSNO   AS SNO  "
     strSQL = strSQL & "   ,SZSRY   AS SRY  "
     strSQL = strSQL & "   ,SZLOT   AS LOT  "
+    strSQL = strSQL & "   ,'' AS ZSSSTF "      '★在庫側は空文字
+    strSQL = strSQL & "   ,'' AS ZSIDJK "      '★在庫側は空文字
     strSQL = strSQL & "   ,'在庫'  AS KBN  "
-    strSQL = strSQL & "   ,'2'       AS KBN2 "    '16 KBNのSORT用
+    strSQL = strSQL & "   ,'2'       AS KBN2 "
     strSQL = strSQL & "   ,SZSLD   AS SLD  "
-    strSQL = strSQL & "   ,SZSLD2  AS SLD2 "                                    '2017/04/03 Add
-    ' 2018/05/16  伝票番号+行番号で受注データが２件以上あるケース。条件に日付も入れておく
-    'strSQL = strSQL & " FROM      LIBWMF17.WNPP21B3 "
+    strSQL = strSQL & "   ,SZSLD2  AS SLD2 "
     strSQL = strSQL & " FROM "
-    ' 2021/10/15  日付+伝票番号+行番号で受注データが２件以上あるケース。条件に品番を入れゼロは省く（打消しの伝票）
     strSQL = strSQL & "    (SELECT"
     strSQL = strSQL & "             *"
     strSQL = strSQL & "     From"
@@ -251,7 +253,6 @@ Public Sub データ抽出_出荷在庫(ByRef 引当Rec() As 引当Record, ByVal
     strSQL = strSQL & "             LIBWMF17.WNPP21B3"
     strSQL = strSQL & "         WHERE"
     strSQL = strSQL & "             JPSNO='" & P_専用伝票NO & "' "
-    'strSQL = strSQL & "         GROUP BY JPNNS,JPNNE,JPNTU,JPNHI,JPSNO,JPSGY"
     strSQL = strSQL & "         GROUP BY JPNNS,JPNNE,JPNTU,JPNHI,JPSNO,JPSGY,JPHNO"
     strSQL = strSQL & "      ) AS JP2"
     strSQL = strSQL & "     WHERE JPKSU > 0"
@@ -264,7 +265,8 @@ Public Sub データ抽出_出荷在庫(ByRef 引当Rec() As 引当Record, ByVal
     strSQL = strSQL & "  ) AS SZ ON SZ.SZSNO = JP.JPHNO "
     strSQL = strSQL & " WHERE JPSNO='" & P_専用伝票NO & "' "
     If Val(i_行NO) > 0 Then strSQL = strSQL & " AND JPSGY=" & i_行NO
-    strSQL = strSQL & " ORDER BY 1,2,16,14 "                                    'SNO,SGY,KBN2,LOT
+    strSQL = strSQL & " ORDER BY 1,2,18,14 "    'SNO,SGY,KBN2,LOT
+
     Debug.Print strSQL
     RS.Open strSQL, CN, adOpenStatic, adLockReadOnly
     Do While Not RS.EOF
@@ -289,6 +291,9 @@ Public Sub データ抽出_出荷在庫(ByRef 引当Rec() As 引当Record, ByVal
                 .生産品番 = NVL(RS("SNO"))
                 .出庫期限 = 日付変換(RS("SLD"))
                 If P_出荷期限KB = "2" Then .出庫期限 = 日付変換(RS("SLD2")) '2017/04/03 Upd 出荷期限パターンでどちらかを使う
+                .車両積荷前衛生点検 = RS("ZSSSTF") ' ←追加
+                .逸脱事項 = RS("ZSIDJK")           ' ←追加
+                
                 If RS("KBN") = "出荷" Then
                     .在庫数 = 0
                     .出荷数 = NZ(RS("SRY"))

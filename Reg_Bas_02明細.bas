@@ -111,7 +111,7 @@ Public Sub 明細表示()
     strSQL = strSQL & "     GROUP BY ZSSNO "
     strSQL = strSQL & "  ) AS ZS ON ZS.ZSSNO = JPSNO "
     ' ▼ZSSSTF（車両積荷前衛生点検）・ZSIDJK（逸脱事項）を取得するためのJOINを追加
-    strSQL = strSQL & " LEFT JOIN LIBSMF17.SZSP01 SZ ON SZ.ZSSNO=JP.JPSNO AND SZ.ZSGYO=JP.JPSGY "
+    strSQL = strSQL & " LEFT JOIN " & P_LIB & ".SZSP01 SZ ON SZ.ZSSNO=JP.JPSNO AND SZ.ZSSGY=JP.JPSGY "
     strSQL = strSQL & " ORDER BY JPSNO,JPSGY "
     Debug.Print strSQL
     RS.Open strSQL, CN, adOpenStatic, adLockReadOnly
@@ -201,6 +201,8 @@ Public Sub 明細表示()
     Next
     明細_最終行 = 行
 
+    ' ★ここでリスト再設定
+    Call Set車両積荷前衛生点検リスト
 
     '見ためを整える
     Range(Cells(明細_行頭, 2), Cells(明細_最終行, 12)).Rows.AutoFit
@@ -209,4 +211,32 @@ Public Sub 明細表示()
     Cells(1, 7).Select
     Application.StatusBar = False
 
+End Sub
+
+' 明細シートの11列目・12列目を在庫引当ワークの18列目・19列目に転記する
+Public Sub 明細ToHikiate転記()
+    Dim 明細行 As Long, 引当行 As Long
+    Dim 明細行NO As Variant, 引当行NO As Variant
+
+    For 明細行 = 明細_行頭 To 明細_最終行
+        明細行NO = st02Meisai.Cells(明細行, 2).Value
+        If 明細行NO <> "" Then
+            For 引当行 = 引当_行頭 To 引当_最終行
+                引当行NO = st02Hikiate.Cells(引当行, 3).Value
+                If 明細行NO = 引当行NO Then
+                    ' 11列目（〇×）→18列目（1/0）
+                    Select Case st02Meisai.Cells(明細行, 11).Value
+                        Case "〇"
+                            st02Hikiate.Cells(引当行, 18).Value = 1
+                        Case "×"
+                            st02Hikiate.Cells(引当行, 18).Value = 0
+                        Case Else
+                            st02Hikiate.Cells(引当行, 18).Value = ""
+                    End Select
+                    ' 12列目→19列目
+                    st02Hikiate.Cells(引当行, 19).Value = st02Meisai.Cells(明細行, 12).Value
+                End If
+            Next
+        End If
+    Next
 End Sub
