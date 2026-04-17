@@ -45,6 +45,8 @@ Public Sub 明細クリア()
     Range(Cells(10, 2), Cells(10, 8)).Interior.Color = RGB(255, 255, 153)   '薄黄
     Range(Cells(10, 9), Cells(10, 12)).Interior.Color = RGB(255, 204, 153)  '薄橙
     Range(Cells(10, 2), Cells(10, 12)).Borders.LineStyle = xlContinuous
+    Columns(12).ColumnWidth = 30
+    Columns(12).WrapText = True
     
     'テスト時は警告表示する(タイトル行をオレンジ色に)
     If P_LIB = "LIBSMF17T" Then Range(Cells(1, 1), Cells(1, 14)).Interior.Color = RGB(255, 100, 0)
@@ -166,7 +168,18 @@ Public Sub 明細表示()
                 End If
             End If
             ' 11列目: 車両積荷前衛生点検（AS項目:ZSSSTF 1/0をそのままセット）
-            Cells(行, 11) = st02Hikiate.Cells(data行 - 1, 18)
+            'Cells(行, 11) = st02Hikiate.Cells(data行 - 1, 18)
+
+            ' 11列目: 車両積荷前衛生点検（AS項目:ZSSSTF 1/9/0→〇/×/空白で表示）
+            Select Case st02Hikiate.Cells(data行 - 1, 18).Value
+                Case 1
+                    Cells(行, 11) = "〇"
+                Case 9
+                    Cells(行, 11) = "×"
+                Case Else
+                    Cells(行, 11) = ""
+            End Select
+
             ' 12列目: 逸脱事項（AS項目:ZSIDJK フリー入力をそのままセット）
             Cells(行, 12) = st02Hikiate.Cells(data行 - 1, 19)
             ' 期限切れコメント（13列目）
@@ -224,16 +237,16 @@ Public Sub 明細ToHikiate転記()
             For 引当行 = 引当_行頭 To 引当_最終行
                 引当行NO = st02Hikiate.Cells(引当行, 3).Value
                 If 明細行NO = 引当行NO Then
-                    ' 11列目（〇×）→18列目（1/0）
+                    ' 11列目（〇×）→18列目（1/9/0）に変換して転記
                     Select Case st02Meisai.Cells(明細行, 11).Value
                         Case "〇"
                             st02Hikiate.Cells(引当行, 18).Value = 1
                         Case "×"
-                            st02Hikiate.Cells(引当行, 18).Value = 0
+                            st02Hikiate.Cells(引当行, 18).Value = 9
                         Case Else
-                            st02Hikiate.Cells(引当行, 18).Value = ""
+                            st02Hikiate.Cells(引当行, 18).Value = 0
                     End Select
-                    ' 12列目→19列目
+                    ' 12列目はそのまま転記
                     st02Hikiate.Cells(引当行, 19).Value = st02Meisai.Cells(明細行, 12).Value
                 End If
             Next

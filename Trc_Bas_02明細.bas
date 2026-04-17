@@ -24,14 +24,15 @@ Private Sub 明細クリア()
     Cells(4, 9) = "生産日":      Cells(7, 9) = "出荷日" '2017/05/01 Update
     Cells(4, 10) = "在庫数":     Cells(7, 10) = "出荷数" '2017/05/01 Update
     '--- 2026/04/15 新仕様対応: 11・12列目見出し追加（出荷部） ---
-    Cells(7, 11) = "車両積荷前衛生点検(ZSSSTF)" '1:実施 0:未実施
-    Cells(7, 12) = "逸脱事項(ZSIDJK)"           'フリー入力
+    Cells(7, 11) = "車両積荷前衛生点検" '1:〇 9:× 0:空白
+    Cells(7, 12) = "逸脱事項"           'フリー入力
     '---
     Range(Cells(明細在庫_行頭 - 1, 2), Cells(明細在庫_行頭 - 1, 10)).Interior.Color = RGB(255, 255, 204)
-    Range(Cells(明細出荷_行頭 - 1, 2), Cells(明細出荷_行頭 - 1, 10)).Interior.Color = RGB(255, 255, 204)
+    Range(Cells(明細出荷_行頭 - 1, 2), Cells(明細出荷_行頭 - 1, 12)).Interior.Color = RGB(255, 255, 204)
     Range(Cells(明細在庫_行頭 - 1, 2), Cells(明細在庫_行頭 - 1, 10)).Borders.LineStyle = xlContinuous
-    Range(Cells(明細出荷_行頭 - 1, 2), Cells(明細出荷_行頭 - 1, 10)).Borders.LineStyle = xlContinuous
-
+    Range(Cells(明細出荷_行頭 - 1, 2), Cells(明細出荷_行頭 - 1, 12)).Borders.LineStyle = xlContinuous
+    Columns(12).ColumnWidth = 30
+    Columns(12).WrapText = True
 End Sub
 
 Public Sub 明細表示()
@@ -90,6 +91,7 @@ Public Sub 明細表示()
     Loop
     RS.Close
     
+   
     Range(Cells(明細在庫_行頭, 2), Cells(行, 10)).Borders.LineStyle = xlContinuous ' 2017/05/01 Add
     
     行 = 明細出荷_行頭 - 1
@@ -112,6 +114,8 @@ Public Sub 明細表示()
     strSQL = strSQL & "  ,TMKTM "
     strSQL = strSQL & "  ,TEME1 "
     strSQL = strSQL & "  ,SKSKM "                                                   '2018/04/12 Add
+    strSQL = strSQL & "  ,ZS.ZSSSTF "   ' ★追加
+    strSQL = strSQL & "  ,ZS.ZSIDJK "   ' ★追加
     strSQL = strSQL & " FROM      "
     strSQL = strSQL & "  ( SELECT "
     strSQL = strSQL & "      *  "
@@ -148,8 +152,15 @@ Public Sub 明細表示()
         Cells(行, 10).Value = RS("SRY")                     '出荷数
         '--- 2026/04/15 新仕様対応: 11・12列目（ZSSSTF, ZSIDJK）を転記 ---
         On Error Resume Next
-        Cells(行, 11).Value = RS("ZSSSTF") '車両積荷前衛生点検（1:実施 0:未実施）
-        Cells(行, 12).Value = RS("ZSIDJK") '逸脱事項（フリー入力）
+        Select Case RS("ZSSSTF")
+            Case 1
+                Cells(行, 11).Value = "〇"
+            Case 9
+                Cells(行, 11).Value = "×"
+            Case Else
+                Cells(行, 11).Value = ""
+        End Select
+        Cells(行, 12).Value = RS("ZSIDJK")
         On Error GoTo 0
         '---
         RS.MoveNext

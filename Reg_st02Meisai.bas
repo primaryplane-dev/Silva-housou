@@ -34,21 +34,23 @@ Private Sub Worksheet_SelectionChange(ByVal Target As Range)
             Cells(行, 10).Value = "引当する"
             Cells(行, 列_チェック).Interior.Color = RGB(255, 153, 204)  '桃色
             Rows(行).AutoFit
-            ' 11列目: 車両積荷前衛生点検（〇→1、×→0）
+            ' 11列目: 車両積荷前衛生点検（〇→1、×→9、空欄→0）
             Dim tmpVal As String
             tmpVal = Trim(Cells(行, 11).Value)
-            Dim tmpHikiate As Variant
+            Dim tmpHygiene As Variant
             If tmpVal = "〇" Then
                 Cells(行, 11).Value = 1
-                tmpHikiate = 1
+                tmpHygiene = 1
             ElseIf tmpVal = "×" Then
-                Cells(行, 11).Value = 0
-                tmpHikiate = 0
+                Cells(行, 11).Value = 9
+                tmpHygiene = 9
             Else
-                tmpHikiate = ""
+                Cells(行, 11).Value = 0
+                tmpHygiene = 0
             End If
-            ' 18列目: 車両積荷前衛生点検（1/0）をst02Hikiateへ転記
-            st02Hikiate.Cells(行, 18).Value = tmpHikiate
+            ' 18列目: 車両積荷前衛生点検（1/0/9）をst02Hikiateへ転記
+            st02Hikiate.Cells(行, 18).Value = tmpHygiene
+
             ' 19列目: 逸脱事項（AS項目:ZSIDJK／st02Hikiateへそのまま転記）
             st02Hikiate.Cells(行, 19).Value = Cells(行, 12).Value
             Call Set共通変数
@@ -132,20 +134,31 @@ For 行 = 明細_行頭 To 明細_最終行
     出荷Rec.伝票NO = Cells(4, 8).Value
 
     ' 型変換・エラーチェック
-    Dim tmpHygiene As Variant
-    tmpHygiene = Cells(行, 11).Value
-    If IsNumeric(tmpHygiene) Then
-        出荷Rec.車両積荷前衛生点検 = CInt(tmpHygiene)
-    Else
-        出荷Rec.車両積荷前衛生点検 = 0
-    End If
+    'Dim tmpHygiene As Variant
+    'tmpHygiene = Cells(行, 11).Value
+    'If IsNumeric(tmpHygiene) Then
+    '    出荷Rec.車両積荷前衛生点検 = CInt(tmpHygiene)
+    'Else
+    '    出荷Rec.車両積荷前衛生点検 = 0
+    'End If
+
+    Select Case Cells(行, 11).Value
+        Case "〇"
+            出荷Rec.車両積荷前衛生点検 = 1
+        Case "×"
+            出荷Rec.車両積荷前衛生点検 = 9
+        Case Else
+            出荷Rec.車両積荷前衛生点検 = 0
+    End Select
 
     Dim tmpDeviation As Variant
     tmpDeviation = Cells(行, 12).Value
-    If IsError(tmpDeviation) Or IsNull(tmpDeviation) Then
+    If IsError(tmpDeviation) Or IsNull(tmpDeviation) Or IsEmpty(tmpDeviation) Then
         出荷Rec.逸脱事項 = ""
-    Else
+    ElseIf VarType(tmpDeviation) = vbString Or VarType(tmpDeviation) = vbInteger Or VarType(tmpDeviation) = vbLong Then
         出荷Rec.逸脱事項 = CStr(tmpDeviation)
+    Else
+        出荷Rec.逸脱事項 = ""
     End If
 
     Dim hygieneSQL As String

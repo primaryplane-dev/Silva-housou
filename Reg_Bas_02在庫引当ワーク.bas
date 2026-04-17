@@ -292,8 +292,12 @@ Public Sub データ抽出_出荷在庫(ByRef 引当Rec() As 引当Record, ByVal
                 .出庫期限 = 日付変換(RS("SLD"))
                 If P_出荷期限KB = "2" Then .出庫期限 = 日付変換(RS("SLD2")) '2017/04/03 Upd 出荷期限パターンでどちらかを使う
                 .車両積荷前衛生点検 = RS("ZSSSTF") ' ←追加
-                .逸脱事項 = RS("ZSIDJK")           ' ←追加
-                
+                If IsNull(RS("ZSIDJK")) Then
+                    .逸脱事項 = ""
+                Else
+                    .逸脱事項 = RS("ZSIDJK")
+                End If                
+
                 If RS("KBN") = "出荷" Then
                     .在庫数 = 0
                     .出荷数 = NZ(RS("SRY"))
