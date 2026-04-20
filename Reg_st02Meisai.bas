@@ -226,8 +226,8 @@ Next ' ←「For 行 = ...」のNext
     st01List.Select
     Call st01List.カレント行移動
     Call Create在庫引当ワーク
-    Call 明細ToHikiate転記
-    Call 明細表示
+    'Call 明細表示
+    'Call 明細ToHikiate転記
     Call Set共通変数
     st02Meisai.Select
     

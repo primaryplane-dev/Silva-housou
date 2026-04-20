@@ -47,7 +47,7 @@ Public Sub 明細クリア()
     Range(Cells(10, 2), Cells(10, 12)).Borders.LineStyle = xlContinuous
     Columns(12).ColumnWidth = 30
     Columns(12).WrapText = True
-    
+
     'テスト時は警告表示する(タイトル行をオレンジ色に)
     If P_LIB = "LIBSMF17T" Then Range(Cells(1, 1), Cells(1, 14)).Interior.Color = RGB(255, 100, 0)
     
@@ -77,11 +77,7 @@ Public Sub 明細表示()
     CN.CursorLocation = adUseClient
     CN.Open P_接続文字列
 
-    '■ヘッダデータ抽出　LIBWMF17.WNPP21B3:受注・納品プール
-    '  (伝票情報)        LIBWMF.WMSP01    :名称マスタ
-    '                  　LIBBMF.BAEP01  　:住所マスタ
-    '                    LIBWMF17.WTMP01  :特約店マスタ(出荷先)
-    '                  　LIBWMF17.WTEP01  :特約店枝番管理マスタ
+    '■ヘッダデータ抽出
     行 = 明細_行頭 - 1
     strSQL = ""
     strSQL = strSQL & "SELECT"
@@ -112,7 +108,6 @@ Public Sub 明細表示()
     strSQL = strSQL & "       AND ZSSNO='" & P_専用伝票NO & "' "
     strSQL = strSQL & "     GROUP BY ZSSNO "
     strSQL = strSQL & "  ) AS ZS ON ZS.ZSSNO = JPSNO "
-    ' ▼ZSSSTF（車両積荷前衛生点検）・ZSIDJK（逸脱事項）を取得するためのJOINを追加
     strSQL = strSQL & " LEFT JOIN " & P_LIB & ".SZSP01 SZ ON SZ.ZSSNO=JP.JPSNO AND SZ.ZSSGY=JP.JPSGY "
     strSQL = strSQL & " ORDER BY JPSNO,JPSGY "
     Debug.Print strSQL
@@ -123,7 +118,7 @@ Public Sub 明細表示()
         Cells(3, 8) = RS("ONDO")                                                        '温度帯区分
         Cells(4, 3) = RS("JPNNS") & RS("JPNNE") & "/" & RS("JPNTU") & "/" & RS("JPNHI") '納品日
         Cells(4, 4) = RS("JPCNO") & "-" & RS("JPDNO")                                   'コースNO + 配送NO
-        Cells(4, 8) = "'" & RTrim(RS("JPSNO"))                                          '専用伝票NO         2018/05/09　ゼロサプレス対応
+        Cells(4, 8) = "'" & RTrim(RS("JPSNO"))                                          '専用伝票NO
         Cells(5, 3) = RS("JPTNO")                                                       '店舗NO
         Cells(5, 4) = RS("JPHC4") & " " & RS("JPSWK")                                   '汎用CD4 + 仕分区分
         Cells(5, 5) = RTrim(RS("TMKTM"))                                                '出荷先名
@@ -138,19 +133,16 @@ Public Sub 明細表示()
         End If
         Exit Do
     Loop
-    'ＲＳクローズ、ＤＢ切断
     RS.Close:    Set RS = Nothing
     CN.Close:    Set CN = Nothing
 
     '■在庫引当シートを転記する(KEYは行NO)
     行 = 明細_行頭 - 1
-    '変数クリア
     WKメモ = "":    WK割当数計 = 0:    WK今回引当 = "": WK期限切れ = ""
     KEY_Z = st02Hikiate.Cells(引当_行頭, 3)
     For data行 = 引当_行頭 To 引当_最終行 + 1
         KEY = st02Hikiate.Cells(data行, 3)
         If KEY <> KEY_Z Then
-            'ブレイクしたら前の行の情報を書く
             行 = 行 + 1
             Cells(行, 2) = st02Hikiate.Cells(data行 - 1, 3)     '伝票No.行番号
             Cells(行, 3) = st02Hikiate.Cells(data行 - 1, 4)     '伝票区分
@@ -162,47 +154,49 @@ Public Sub 明細表示()
             Cells(行, 9) = WKメモ                               '引当在庫(賞味期限)
             If WK割当数計 >= st02Hikiate.Cells(data行 - 1, 10) Then
                 If WK今回引当 = "あり" Then
-                    Cells(行, 10) = "未処理"                    'チェック
+                    Cells(行, 10) = "未処理"
                 Else
                     Cells(行, 10) = "確定"
                 End If
             End If
-            ' 11列目: 車両積荷前衛生点検（AS項目:ZSSSTF 1/0をそのままセット）
-            'Cells(行, 11) = st02Hikiate.Cells(data行 - 1, 18)
 
-            ' 11列目: 車両積荷前衛生点検（AS項目:ZSSSTF 1/9/0→〇/×/空白で表示）
-            Select Case st02Hikiate.Cells(data行 - 1, 18).Value
-                Case 1
-                    Cells(行, 11) = "〇"
-                Case 9
-                    Cells(行, 11) = "×"
-                Case Else
-                    Cells(行, 11) = ""
-            End Select
-
-            ' 12列目: 逸脱事項（AS項目:ZSIDJK フリー入力をそのままセット）
-            Cells(行, 12) = st02Hikiate.Cells(data行 - 1, 19)
-            ' 期限切れコメント（13列目）
-            If WK期限切れ = "あり" Then
-                Cells(行, 13) = "期限ぎれ在庫あり"              '欄外コメント
+            ' 11・12列目: 行番号一致のst02Hikiateの最初のレコードから取得
+            Dim iHikiate As Long
+            Dim foundFlg As Boolean
+            foundFlg = False
+            For iHikiate = 引当_行頭 To 引当_最終行
+                If st02Hikiate.Cells(iHikiate, 3).Value = Cells(行, 2).Value Then
+                    ' 11列目: 車両積荷前衛生点検（1/9/0→〇/×/空白）
+                    Select Case st02Hikiate.Cells(iHikiate, 18).Value
+                        Case 1
+                            Cells(行, 11) = "〇"
+                        Case 9
+                            Cells(行, 11) = "×"
+                        Case Else
+                            Cells(行, 11) = ""
+                    End Select
+                    ' 12列目: 逸脱事項
+                    Cells(行, 12) = st02Hikiate.Cells(iHikiate, 19).Value
+                    foundFlg = True
+                    Exit For
+                End If
+            Next iHikiate
+            If Not foundFlg Then
+                Cells(行, 11) = ""
+                Cells(行, 12) = ""
             End If
-            '変数クリア
+
+            If WK期限切れ = "あり" Then
+                Cells(行, 13) = "期限ぎれ在庫あり"
+            End If
             WKメモ = "":        WK割当数計 = 0
             WK期限切れ = "":    WK今回引当 = ""
             KEY_Z = KEY
         End If
     
-        '出荷・出荷候補数をまとめる
         If Val(st02Hikiate.Cells(data行, 14)) <> 0 Then
             WK割当数計 = WK割当数計 + st02Hikiate.Cells(data行, 14)
             If WKメモ <> "" Then WKメモ = WKメモ & vbCrLf
-                                                                            '2017/05/08 Upd No.62 バッチNoを削除
-           'WKメモ = WKメモ & Right(String(6, " ") & st02Hikiate.Cells(data行, 14), 6) _
-           '                & " (" _
-           '                & Format(Get賞味期限fromロット(st02Hikiate.Cells(data行, 16)), "yyyy/mm/dd") _
-           '                & "-" & Getバッチ数fromロット(st02Hikiate.Cells(data行, 16)) _
-           '                & ") " _
-           '                & st02Hikiate.Cells(data行, 15)
             WKメモ = WKメモ & Right(String(6, " ") & st02Hikiate.Cells(data行, 14), 6) _
                             & " (" _
                             & Format(Get賞味期限fromロット(st02Hikiate.Cells(data行, 16)), "yyyy/mm/dd") _
@@ -214,10 +208,8 @@ Public Sub 明細表示()
     Next
     明細_最終行 = 行
 
-    ' ★ここでリスト再設定
     Call Set車両積荷前衛生点検リスト
 
-    '見ためを整える
     Range(Cells(明細_行頭, 2), Cells(明細_最終行, 12)).Rows.AutoFit
     Range(Cells(明細_行頭, 2), Cells(明細_最終行, 12)).Borders.LineStyle = xlContinuous
 
@@ -231,22 +223,15 @@ Public Sub 明細ToHikiate転記()
     Dim 明細行 As Long, 引当行 As Long
     Dim 明細行NO As Variant, 引当行NO As Variant
 
+    ' 明細シートの行番号が一致する行だけ上書き
     For 明細行 = 明細_行頭 To 明細_最終行
         明細行NO = st02Meisai.Cells(明細行, 2).Value
         If 明細行NO <> "" Then
             For 引当行 = 引当_行頭 To 引当_最終行
                 引当行NO = st02Hikiate.Cells(引当行, 3).Value
                 If 明細行NO = 引当行NO Then
-                    ' 11列目（〇×）→18列目（1/9/0）に変換して転記
-                    Select Case st02Meisai.Cells(明細行, 11).Value
-                        Case "〇"
-                            st02Hikiate.Cells(引当行, 18).Value = 1
-                        Case "×"
-                            st02Hikiate.Cells(引当行, 18).Value = 9
-                        Case Else
-                            st02Hikiate.Cells(引当行, 18).Value = 0
-                    End Select
-                    ' 12列目はそのまま転記
+                    ' 1/9/0/空白をそのまま転記
+                    st02Hikiate.Cells(引当行, 18).Value = st02Meisai.Cells(明細行, 11).Value
                     st02Hikiate.Cells(引当行, 19).Value = st02Meisai.Cells(明細行, 12).Value
                 End If
             Next
